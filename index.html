@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Photo Editor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    canvas {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mx-auto p-8">
+    <!-- Header -->
+    <header class="text-center mb-12">
+      <h1 class="text-4xl font-bold text-gray-800">Online Photo Editor</h1>
+      <p class="text-gray-600 mt-2">Add text, stickers, effects, and filters to your photos. Edit your photos online.</p>
+    </header>
+
+    <!-- Upload Section -->
+    <div class="card p-8 mb-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">Select Image</h2>
+      <input type="file" id="imageInput" accept="image/*" class="hidden">
+      <label for="imageInput" class="block bg-blue-500 text-white text-center py-3 px-6 rounded-lg cursor-pointer hover:bg-blue-600 transition duration-300">
+        Upload Image
+      </label>
+    </div>
+
+    <!-- Image Display Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+      <!-- Original Image -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Original Image</h2>
+        <img id="originalImage" src="" alt="Original Image" class="rounded-lg shadow-lg mx-auto" style="max-width: 100%; display: none;">
+      </div>
+
+      <!-- Preview Image -->
+      <div class="card p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Preview Image</h2>
+        <img id="preview" src="" alt="Preview Image" class="rounded-lg shadow-lg mx-auto" style="max-width: 100%; display: none;">
+      </div>
+    </div>
+
+    <!-- AI Tools Section -->
+    <div class="card p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">AI Tools</h2>
+      <button onclick="enhancePhoto()" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition duration-300 mb-2">
+        Enhance Photo
+      </button>
+      <button onclick="removeBackground()" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition duration-300 mb-2">
+        Remove Background
+      </button>
+      <button onclick="faceUnblur()" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition duration-300 mb-2">
+        Face Unblur
+      </button>
+      <button onclick="skinRetouch()" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg hover:bg-purple-600 transition duration-300 mb-2">
+        AI Skin Retouch
+      </button>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Filters</h2>
+      <select id="filterSelect" class="w-full p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="none">None</option>
+        <option value="grayscale">Grayscale</option>
+        <option value="sepia">Sepia</option>
+        <option value="brightness">Brightness</option>
+        <option value="contrast">Contrast</option>
+        <option value="blur">Blur</option>
+      </select>
+      <button onclick="applyFilter()" class="w-full bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300">
+        Apply Filter
+      </button>
+    </div>
+
+    <!-- Creative Tools Section -->
+    <div class="card p-6 mb-8">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Creative Tools</h2>
+      <button onclick="addText()" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-300 mb-2">
+        Add Text
+      </button>
+      <button onclick="addStickers()" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-300 mb-2">
+        Add Stickers
+      </button>
+      <button onclick="photoToArt()" class="w-full bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition duration-300 mb-2">
+        Photo to Art
+      </button>
+    </div>
+
+    <!-- Download and Reset -->
+    <div class="flex gap-4">
+      <button id="downloadBtn" class="flex-1 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300" disabled>
+        Download
+      </button>
+      <button id="resetBtn" class="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition duration-300" disabled>
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let originalImage = null;
+    let previewImage = null;
+
+    // Upload and display original image
+    document.getElementById('imageInput').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        // Display original image
+        document.getElementById('originalImage').src = e.target.result;
+        document.getElementById('originalImage').style.display = 'block';
+
+        // Display preview image
+        document.getElementById('preview').src = e.target.result;
+        document.getElementById('preview').style.display = 'block';
+
+        // Enable download and reset buttons
+        document.getElementById('downloadBtn').disabled = false;
+        document.getElementById('resetBtn').disabled = false;
+
+        // Save original image for reset
+        originalImage = e.target.result;
+        previewImage = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Apply filters
+    function applyFilter() {
+      const filter = document.getElementById('filterSelect').value;
+      const preview = document.getElementById('preview');
+      switch (filter) {
+        case 'grayscale':
+          preview.style.filter = 'grayscale(100%)';
+          break;
+        case 'sepia':
+          preview.style.filter = 'sepia(100%)';
+          break;
+        case 'brightness':
+          preview.style.filter = 'brightness(150%)';
+          break;
+        case 'contrast':
+          preview.style.filter = 'contrast(200%)';
+          break;
+        case 'blur':
+          preview.style.filter = 'blur(5px)';
+          break;
+        default:
+          preview.style.filter = 'none';
+      }
+    }
+
+    // AI Tools (Placeholder functions)
+    function enhancePhoto() {
+      alert('Enhance Photo feature is under development.');
+    }
+
+    function removeBackground() {
+      alert('Remove Background feature is under development.');
+    }
+
+    function faceUnblur() {
+      alert('Face Unblur feature is under development.');
+    }
+
+    function skinRetouch() {
+      alert('AI Skin Retouch feature is under development.');
+    }
+
+    // Creative Tools (Placeholder functions)
+    function addText() {
+      alert('Add Text feature is under development.');
+    }
+
+    function addStickers() {
+      alert('Add Stickers feature is under development.');
+    }
+
+    function photoToArt() {
+      alert('Photo to Art feature is under development.');
+    }
+
+    // Download edited image
+    document.getElementById('downloadBtn').addEventListener('click', function () {
+      const preview = document.getElementById('preview');
+      const link = document.createElement('a');
+      link.href = preview.src;
+      link.download = 'edited-image.png';
+      link.click();
+    });
+
+    // Reset image and filters
+    document.getElementById('resetBtn').addEventListener('click', function () {
+      document.getElementById('originalImage').src = originalImage;
+      document.getElementById('preview').src = originalImage;
+      document.getElementById('filterSelect').value = 'none';
+      document.getElementById('preview').style.filter = 'none';
+    });
+  </script>
+</body>
+</html>
